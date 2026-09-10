@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4f0e8" />
     <title>PixelCrop | Rimuovi sfondo</title>
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
     <!-- doReload disattivato: evita loop di refresh sui server dev che invalidano la cache a ogni richiesta -->
     <script>window.coi = { quiet: true, doReload: () => {} };</script>
@@ -55,6 +56,17 @@
             <figure><div class="image-frame original-frame"><img id="original-image" alt="Immagine originale" /></div><figcaption>originale</figcaption></figure>
             <figure><div class="image-frame checker-frame"><img id="result-image" alt="Immagine con sfondo rimosso" /></div><figcaption>sfondo rimosso</figcaption></figure>
           </div>
+
+          <div class="aggressiveness">
+            <div class="aggressiveness-head">
+              <label for="aggressiveness-slider">Aggressività rimozione</label>
+              <span id="aggressiveness-value">50%</span>
+            </div>
+            <input type="range" id="aggressiveness-slider" min="0" max="100" value="50" step="1" />
+            <div class="aggressiveness-labels"><span>delicato</span><span>aggressivo</span></div>
+            <p class="aggressiveness-hint">Se resta parte dello sfondo attorno al soggetto, aumenta l’aggressività: la trasparenza viene ricalcolata subito, senza rielaborare l’immagine.</p>
+          </div>
+
           <a class="download-button" id="download-button" download="pixelcrop-senza-sfondo.png"><span aria-hidden="true">↓</span> Scarica PNG trasparente</a>
         </div>
       </section>

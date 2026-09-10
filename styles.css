@@ -78,6 +78,14 @@ h1 em { color: var(--lime); font-style: normal; }
 .checker-frame { background-color: var(--checker-b); background-image: linear-gradient(45deg, var(--checker-a) 25%, transparent 25%), linear-gradient(-45deg, var(--checker-a) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--checker-a) 75%), linear-gradient(-45deg, transparent 75%, var(--checker-a) 75%); background-size: 22px 22px; background-position: 0 0, 0 11px, 11px -11px, -11px 0; }
 .comparison figcaption { margin-top: 10px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; }
 .comparison figure { min-width: 0; margin: 0; }
+.aggressiveness { margin-top: 30px; padding: 18px 20px; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 70%, transparent); }
+.aggressiveness-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 600; }
+.aggressiveness-head span { color: var(--lime); font: 700 13px "Segoe UI", sans-serif; }
+.aggressiveness input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; margin: 14px 0 6px; background: var(--line); cursor: pointer; }
+.aggressiveness input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--lime); border: 2px solid var(--paper); cursor: pointer; }
+.aggressiveness input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--lime); border: 2px solid var(--paper); cursor: pointer; }
+.aggressiveness-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.aggressiveness-hint { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .download-button { display: inline-flex; align-items: center; gap: 9px; margin-top: 30px; padding: 15px 19px; color: #202321; background: var(--lime); font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .download-button:hover { background: #cbe45b; }
 .download-button span { font-size: 20px; line-height: 10px; }
