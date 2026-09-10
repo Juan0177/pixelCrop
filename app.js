@@ -13,6 +13,9 @@ const themeButton = document.querySelector('#theme-button');
 
 import { removeBackground } from './assets/js/background-removal.js';
 
+// URL assoluto richiesto dalla libreria: new URL(relative, base) rifiuta basi relative.
+const modelsPublicPath = new URL('./assets/models/dist/', import.meta.url).href;
+
 let originalUrl;
 let resultUrl;
 
@@ -59,7 +62,7 @@ async function processImage(file) {
 
   try {
     const blob = await removeBackground(file, {
-      publicPath: './assets/models/dist/',
+      publicPath: modelsPublicPath,
       model: 'medium',
       progress: (key, current, total) => {
         const percent = total ? 15 + (current / total) * 78 : 30;

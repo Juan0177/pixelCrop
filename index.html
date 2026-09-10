@@ -6,6 +6,9 @@
     <meta name="theme-color" content="#f4f0e8" />
     <title>PixelCrop | Rimuovi sfondo</title>
     <link rel="stylesheet" href="styles.css" />
+    <!-- doReload disattivato: evita loop di refresh sui server dev che invalidano la cache a ogni richiesta -->
+    <script>window.coi = { quiet: true, doReload: () => {} };</script>
+    <script src="assets/js/coi-serviceworker.js"></script>
   </head>
   <body>
     <main class="shell">
