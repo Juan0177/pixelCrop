@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f0e8" />
+    <title>PixelCrop | Rimuovi sfondo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="topbar" aria-label="Navigazione principale">
+        <a class="brand" href="./" aria-label="PixelCrop home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>pixel<span>crop</span></span>
+        </a>
+        <span class="privacy-note"><span class="status-dot"></span> elaborazione locale nel browser</span>
+      </nav>
+
+      <section class="intro">
+        <p class="eyebrow">strumento 01 / scontorno</p>
+        <h1>Via lo sfondo.<br /><em>Resta il soggetto.</em></h1>
+        <p class="lede">Carica un’immagine e ottieni un PNG trasparente in pochi secondi. Le tue immagini restano sul dispositivo.</p>
+      </section>
+
+      <section class="workspace" aria-label="Area di rimozione sfondo">
+        <label class="dropzone" id="dropzone" for="file-input">
+          <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" />
+          <span class="upload-icon" aria-hidden="true">↑</span>
+          <strong>Trascina qui un’immagine</strong>
+          <span>oppure <u>scegli un file</u></span>
+          <small>PNG, JPG o WEBP · massimo 20 MB</small>
+        </label>
+
+        <div class="progress-panel" id="progress-panel" hidden>
+          <div class="progress-head"><span id="progress-label">Preparazione</span><span id="progress-value">0%</span></div>
+          <div class="progress-track"><span id="progress-bar"></span></div>
+          <p>Il primo avvio può richiedere qualche secondo per scaricare il modello.</p>
+        </div>
+
+        <div class="error" id="error" role="alert" hidden></div>
+
+        <div class="result" id="result" hidden>
+          <div class="result-head">
+            <div><p class="eyebrow">risultato pronto</p><h2>Prima / dopo</h2></div>
+            <button class="secondary-button" id="reset-button" type="button">Nuova immagine</button>
+          </div>
+          <div class="comparison">
+            <figure><div class="image-frame original-frame"><img id="original-image" alt="Immagine originale" /></div><figcaption>originale</figcaption></figure>
+            <figure><div class="image-frame checker-frame"><img id="result-image" alt="Immagine con sfondo rimosso" /></div><figcaption>sfondo rimosso</figcaption></figure>
+          </div>
+          <a class="download-button" id="download-button" download="pixelcrop-senza-sfondo.png"><span aria-hidden="true">↓</span> Scarica PNG trasparente</a>
+        </div>
+      </section>
+
+      <footer><span>pixelcrop</span><span>immagini private, risultato tuo</span></footer>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
