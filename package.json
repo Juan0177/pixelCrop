@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "@imgly/background-removal": "^1.5.5",
+    "@imgly/background-removal-data": "^1.4.5",
+    "esbuild": "^0.28.2"
+  }
+}

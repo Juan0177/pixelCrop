@@ -9,10 +9,29 @@ const errorBox = document.querySelector('#error');
 const originalImage = document.querySelector('#original-image');
 const resultImage = document.querySelector('#result-image');
 const downloadButton = document.querySelector('#download-button');
+const themeButton = document.querySelector('#theme-button');
 
-let removeBackground;
+import { removeBackground } from './assets/js/background-removal.js';
+
 let originalUrl;
 let resultUrl;
+
+const savedTheme = localStorage.getItem('pixelcrop-theme');
+if (savedTheme === 'light') document.documentElement.dataset.theme = 'light';
+
+function updateThemeButton() {
+  const isLight = document.documentElement.dataset.theme === 'light';
+  themeButton.textContent = isLight ? '◐' : '☼';
+  themeButton.setAttribute('aria-label', isLight ? 'Attiva tema scuro' : 'Attiva tema chiaro');
+}
+
+updateThemeButton();
+themeButton.addEventListener('click', () => {
+  const isLight = document.documentElement.dataset.theme === 'light';
+  document.documentElement.dataset.theme = isLight ? 'dark' : 'light';
+  localStorage.setItem('pixelcrop-theme', isLight ? 'dark' : 'light');
+  updateThemeButton();
+});
 
 function setProgress(value, label) {
   progressBar.style.width = `${value}%`;
@@ -39,14 +58,12 @@ async function processImage(file) {
   originalImage.src = originalUrl;
 
   try {
-    if (!removeBackground) {
-      setProgress(12, 'Caricamento motore');
-      ({ removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm'));
-    }
     const blob = await removeBackground(file, {
+      publicPath: './assets/models/dist/',
+      model: 'medium',
       progress: (key, current, total) => {
         const percent = total ? 15 + (current / total) * 78 : 30;
-        setProgress(percent, key === 'fetch:model' ? 'Preparazione modello' : 'Rimozione sfondo');
+        setProgress(percent, key.startsWith('fetch:') ? 'Preparazione modello' : 'Rimozione sfondo');
       },
     });
     if (resultUrl) URL.revokeObjectURL(resultUrl);
