@@ -39,6 +39,11 @@ function App() {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const drawing = useRef(false);
+  const [liveStats, setLiveStats] = useState(null);
+  const liveStatsTimer = useRef(null);
+  const processingStart = useRef(0);
+  const [modelCached, setModelCached] = useState(false);
+  const downloadedThisRun = useRef(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -60,6 +65,28 @@ function App() {
     if (originalUrl) URL.revokeObjectURL(originalUrl);
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   }, [originalUrl, downloadUrl]);
+
+  // I browser non espongono l'uso reale di CPU/GPU in percentuale (mitigazioni Spectre): mostriamo tempo e memoria JS, le uniche metriche misurabili da pagina.
+  const startLiveStats = () => {
+    processingStart.current = performance.now();
+    setLiveStats({ elapsedMs: 0, heapUsedMB: null, heapLimitMB: null });
+    liveStatsTimer.current = window.setInterval(() => {
+      const elapsedMs = performance.now() - processingStart.current;
+      const memory = performance.memory;
+      setLiveStats({
+        elapsedMs,
+        heapUsedMB: memory ? memory.usedJSHeapSize / (1024 * 1024) : null,
+        heapLimitMB: memory ? memory.jsHeapSizeLimit / (1024 * 1024) : null,
+      });
+    }, 200);
+  };
+
+  const stopLiveStats = () => {
+    if (liveStatsTimer.current) window.clearInterval(liveStatsTimer.current);
+    liveStatsTimer.current = null;
+  };
+
+  useEffect(() => () => stopLiveStats(), []);
 
   const renderComposite = () => {
     if (!originalData.current || !maskData.current || !canvasRef.current) return;
@@ -102,17 +129,33 @@ function App() {
     setError('');
     setStatus('processing');
     setProgress(5);
+    startLiveStats();
+    downloadedThisRun.current = false;
     setOriginalUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return URL.createObjectURL(selectedFile);
     });
     try {
-      const maskBlob = await segmentForeground(selectedFile, {
+      const runSegmentation = (targetDevice) => segmentForeground(selectedFile, {
         publicPath: modelsPublicPath,
         model: 'medium',
-        device,
-        progress: (key, current, total) => setProgress(total ? 15 + (current / total) * 78 : 30),
+        device: targetDevice,
+        progress: (key, current, total) => {
+          if (key.startsWith('fetch:')) downloadedThisRun.current = true;
+          setProgress(total ? 15 + (current / total) * 78 : 30);
+        },
       });
+      let maskBlob;
+      try {
+        maskBlob = await runSegmentation(device);
+      } catch (gpuError) {
+        if (device !== 'gpu') throw gpuError;
+        // Alcuni browser/driver non supportano ancora il backend WebGPU di onnxruntime-web: ripiega su CPU senza far fallire l'utente.
+        console.warn('GPU non disponibile in questo browser, ripiego su CPU:', gpuError);
+        setDevice('cpu');
+        setCapabilities((previous) => ({ ...previous, gpu: false }));
+        maskBlob = await runSegmentation('cpu');
+      }
       const [sourceBitmap, maskBitmap] = await Promise.all([createImageBitmap(selectedFile), createImageBitmap(maskBlob)]);
       const sourceCanvas = document.createElement('canvas');
       sourceCanvas.width = sourceBitmap.width;
@@ -128,10 +171,13 @@ function App() {
       maskData.current = maskContext.getImageData(0, 0, sourceBitmap.width, sourceBitmap.height);
       initialMask.current = new Uint8ClampedArray(maskData.current.data);
       setProgress(100);
+      stopLiveStats();
+      setModelCached(true);
       setStatus('ready');
       requestAnimationFrame(renderComposite);
     } catch (processingError) {
       console.error(processingError);
+      stopLiveStats();
       setStatus(null);
       setError('Non è stato possibile elaborare questa immagine. Controlla la connessione e riprova.');
     }
@@ -189,8 +235,8 @@ function App() {
           <div className="engine-row">
             <span>Motore</span>
             <div className="engine-toggle">
-              <button className={device === 'cpu' ? 'is-active' : ''} onClick={() => setDevice('cpu')}>CPU</button>
-              <button className={device === 'gpu' ? 'is-active' : ''} onClick={() => setDevice('gpu')} disabled={!capabilities.gpu}>GPU</button>
+              <button className={device === 'cpu' ? 'is-active' : ''} onClick={() => { setDevice('cpu'); setModelCached(false); }}>CPU</button>
+              <button className={device === 'gpu' ? 'is-active' : ''} onClick={() => { setDevice('gpu'); setModelCached(false); }} disabled={!capabilities.gpu}>GPU</button>
             </div>
           </div>
           <p className="engine-explainer">
@@ -206,7 +252,21 @@ function App() {
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => processImage(event.target.files[0])} />
         <span className="upload-icon"><Upload size={23} /></span><strong>Trascina qui un’immagine</strong><span>oppure <u>scegli un file</u></span><small>PNG, JPG o WEBP · massimo 20 MB</small>
       </label>}
-      {status === 'processing' && <section className="progress-panel"><div className="progress-head"><span><WandSparkles size={15} /> Elaborazione locale</span><span>{Math.round(progress)}%</span></div><div className="progress-track"><span style={{ width: `${progress}%` }} /></div><p>Il modello viene eseguito sul tuo dispositivo.</p></section>}
+      {status === 'processing' && <section className="progress-panel">
+        <div className="progress-head"><span><WandSparkles size={15} /> Elaborazione locale</span><span>{Math.round(progress)}%</span></div>
+        <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
+        <p>
+          {modelCached
+            ? `Modello già in cache in questa sessione: solo il calcolo sull'immagine viene rieseguito (motore ${device.toUpperCase()}).`
+            : `Primo utilizzo in questa sessione: scaricamento e preparazione del modello, poi calcolo (motore ${device.toUpperCase()}).`}
+        </p>
+        {liveStats && <div className="live-stats">
+          <div><span>Tempo trascorso</span><strong>{(liveStats.elapsedMs / 1000).toFixed(1)} s</strong></div>
+          <div><span>Memoria JS</span><strong>{liveStats.heapUsedMB != null ? `${liveStats.heapUsedMB.toFixed(0)} / ${liveStats.heapLimitMB.toFixed(0)} MB` : 'non esposta da questo browser'}</strong></div>
+          <div><span>Calcolo pianificato</span><strong>{device === 'gpu' ? 'WebGPU' : `${capabilities.isolated ? capabilities.cores : 1} thread WASM`}</strong></div>
+          <p className="live-stats-note">La cache evita solo il ri-download e la ri-creazione della sessione del modello: il calcolo della rete neurale sui pixel dell'immagine va sempre rieseguito, anche ripetendo la stessa immagine, quindi la durata resta simile da qui in poi. I browser inoltre non espongono l'uso reale di CPU/GPU in percentuale (mitigazioni contro attacchi Spectre): questi restano gli unici valori misurabili da una pagina web.</p>
+        </div>}
+      </section>}
       {error && <div className="error" role="alert">{error}</div>}
       {status === 'ready' && <section className="editor-result"><div className="result-head"><div><p className="eyebrow">risultato pronto</p><h2>Prima / dopo</h2></div><button className="secondary-button" onClick={clear}>Nuova immagine</button></div>
         <div className="comparison"><figure><div className="image-frame original-frame"><img src={originalUrl} alt="Immagine originale" /></div><figcaption>originale</figcaption></figure><figure><div className="image-frame checker-frame editor-frame"><canvas ref={canvasRef} onPointerDown={(event) => { drawing.current = true; event.currentTarget.setPointerCapture(event.pointerId); paint(event); }} onPointerMove={(event) => drawing.current && paint(event)} onPointerUp={() => { drawing.current = false; }} onPointerCancel={() => { drawing.current = false; }} aria-label="Editor manuale della maschera" /></div><figcaption>editor trasparente</figcaption></figure></div>
