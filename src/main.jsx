@@ -43,7 +43,6 @@ function App() {
   const [liveStats, setLiveStats] = useState(null);
   const liveStatsTimer = useRef(null);
   const processingStart = useRef(0);
-  const [activeDevice, setActiveDevice] = useState(null);
   const [modelCached, setModelCached] = useState(false);
   const downloadedThisRun = useRef(false);
 
@@ -156,14 +155,12 @@ function App() {
       });
       let maskBlob;
       try {
-        setActiveDevice(device);
         maskBlob = await runSegmentation(device);
       } catch (gpuError) {
         if (device !== 'gpu') throw gpuError;
         // Alcuni browser/driver non supportano ancora il backend WebGPU di onnxruntime-web: ripiega su CPU senza far fallire l'utente.
         console.warn('GPU non disponibile in questo browser, ripiego su CPU:', gpuError);
         setDevice('cpu');
-        setActiveDevice('cpu');
         setCapabilities((previous) => ({ ...previous, gpu: false }));
         maskBlob = await runSegmentation('cpu');
       }
@@ -184,12 +181,10 @@ function App() {
       setProgress(100);
       stopLiveStats();
       setModelCached(true);
-      setActiveDevice(null);
       setStatus('ready');
     } catch (processingError) {
       console.error(processingError);
       stopLiveStats();
-      setActiveDevice(null);
       setStatus(null);
       setError('Non è stato possibile elaborare questa immagine. Controlla la connessione e riprova.');
     }
@@ -251,8 +246,8 @@ function App() {
           <div className="engine-row">
             <span>Motore</span>
             <div className="engine-toggle">
-              <button className={device === 'cpu' ? 'is-active' : ''} onClick={() => { setDevice('cpu'); setModelCached(false); }}>CPU</button>
-              <button className={device === 'gpu' ? 'is-active' : ''} onClick={() => { setDevice('gpu'); setModelCached(false); }} disabled={!capabilities.gpu}>GPU</button>
+              <button className={device === 'cpu' ? 'is-active' : ''} onClick={() => { setDevice('cpu'); setModelCached(false); }} disabled={status === 'processing'}>CPU</button>
+              <button className={device === 'gpu' ? 'is-active' : ''} onClick={() => { setDevice('gpu'); setModelCached(false); }} disabled={status === 'processing' || !capabilities.gpu}>GPU</button>
             </div>
           </div>
           <p className="engine-explainer">
@@ -275,14 +270,13 @@ function App() {
           <>
             <p>
               {modelCached
-                ? `Modello già in cache in questa sessione: solo il calcolo sull'immagine viene rieseguito (motore ${(activeDevice ?? device).toUpperCase()}).`
-                : `Primo utilizzo in questa sessione: scaricamento e preparazione del modello, poi calcolo (motore ${(activeDevice ?? device).toUpperCase()}).`}
-              {activeDevice && activeDevice !== device && ' Il cambio di motore selezionato si applicherà alla prossima elaborazione.'}
+                ? `Modello già in cache in questa sessione: solo il calcolo sull'immagine viene rieseguito (motore ${device.toUpperCase()}).`
+                : `Primo utilizzo in questa sessione: scaricamento e preparazione del modello, poi calcolo (motore ${device.toUpperCase()}).`}
             </p>
             {liveStats && <div className="live-stats">
               <div><span>Tempo trascorso</span><strong>{(liveStats.elapsedMs / 1000).toFixed(1)} s</strong></div>
               <div><span>Memoria JS</span><strong>{liveStats.heapUsedMB != null ? `${liveStats.heapUsedMB.toFixed(0)} / ${liveStats.heapLimitMB.toFixed(0)} MB` : 'non esposta da questo browser'}</strong></div>
-              <div><span>Calcolo pianificato</span><strong>{(activeDevice ?? device) === 'gpu' ? 'WebGPU' : `${capabilities.isolated ? capabilities.cores : 1} thread WASM`}</strong></div>
+              <div><span>Calcolo pianificato</span><strong>{device === 'gpu' ? 'WebGPU' : `${capabilities.isolated ? capabilities.cores : 1} thread WASM`}</strong></div>
               <p className="live-stats-note">La cache evita solo il ri-download e la ri-creazione della sessione del modello: il calcolo della rete neurale sui pixel dell'immagine va sempre rieseguito, anche ripetendo la stessa immagine, quindi la durata resta simile da qui in poi. I browser inoltre non espongono l'uso reale di CPU/GPU in percentuale (mitigazioni contro attacchi Spectre): questi restano gli unici valori misurabili da una pagina web.</p>
             </div>}
           </>
