@@ -116,6 +116,9 @@ function App() {
 
   useEffect(() => { renderComposite(); }, [aggressiveness]);
 
+  // Il canvas esiste nel DOM solo quando status === 'ready': disegnare qui evita la corsa con il commit di React.
+  useEffect(() => { if (status === 'ready') renderComposite(); }, [status]);
+
   const processImage = async (selectedFile) => {
     if (!selectedFile || !selectedFile.type.startsWith('image/')) {
       setError('Seleziona un file immagine in formato PNG, JPG o WEBP.');
@@ -174,7 +177,6 @@ function App() {
       stopLiveStats();
       setModelCached(true);
       setStatus('ready');
-      requestAnimationFrame(renderComposite);
     } catch (processingError) {
       console.error(processingError);
       stopLiveStats();
