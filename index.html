@@ -6,9 +6,12 @@
     <meta name="theme-color" content="#f4f0e8" />
     <title>PixelCrop | Rimuovi sfondo</title>
     <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
-    <!-- doReload disattivato: evita loop di refresh sui server dev che invalidano la cache a ogni richiesta -->
-    <script>window.coi = { quiet: true, doReload: () => {} };</script>
-    <script src="assets/js/coi-serviceworker.js"></script>
+    <!-- Scope root necessario per isolare l'intera pagina: doReload resta attivo solo fuori dai server di sviluppo, che invalidano la cache a ogni richiesta e causano loop. -->
+    <script>
+      window.coi = { quiet: true };
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.coi.doReload = () => {};
+    </script>
+    <script src="./coi-serviceworker.js"></script>
   </head>
   <body>
     <div id="root"></div>

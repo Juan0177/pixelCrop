@@ -26,6 +26,12 @@ function App() {
   const [mode, setMode] = useState('remove');
   const [brushSize, setBrushSize] = useState(40);
   const [downloadUrl, setDownloadUrl] = useState('');
+  const [device, setDevice] = useState(() => (typeof navigator !== 'undefined' && 'gpu' in navigator ? 'gpu' : 'cpu'));
+  const [capabilities] = useState(() => ({
+    cores: typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 1 : 1,
+    gpu: typeof navigator !== 'undefined' && 'gpu' in navigator,
+    isolated: typeof window !== 'undefined' && window.crossOriginIsolated === true,
+  }));
   const originalData = useRef(null);
   const maskData = useRef(null);
   const initialMask = useRef(null);
@@ -92,6 +98,7 @@ function App() {
       const maskBlob = await segmentForeground(selectedFile, {
         publicPath: modelsPublicPath,
         model: 'medium',
+        device,
         progress: (key, current, total) => setProgress(total ? 15 + (current / total) * 78 : 30),
       });
       const [sourceBitmap, maskBitmap] = await Promise.all([createImageBitmap(selectedFile), createImageBitmap(maskBlob)]);
@@ -162,7 +169,23 @@ function App() {
         <a className="brand" href="./" aria-label="PixelCrop home"><span className="brand-mark"><i /><i /><i /><i /></span><span>pixel<span>crop</span></span></a>
         <div className="topbar-actions"><span className="privacy-note"><span className="status-dot" /> elaborazione locale</span><button className="icon-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Cambia tema">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button></div>
       </nav>
-      <section className="intro"><p className="eyebrow">strumento 01 / scontorno</p><h1>Via lo sfondo.<br /><em>Resta il soggetto.</em></h1><p className="lede">Un editor privato per scontornare, rifinire e scaricare immagini direttamente dal browser.</p></section>
+      <section className="intro">
+        <p className="eyebrow">strumento 01 / scontorno</p>
+        <h1>Via lo sfondo.<br /><em>Resta il soggetto.</em></h1>
+        <p className="lede">Un editor privato per scontornare, rifinire e scaricare immagini direttamente dal browser.</p>
+        <div className="engine-panel">
+          <div className="engine-row">
+            <span>Motore</span>
+            <div className="engine-toggle">
+              <button className={device === 'cpu' ? 'is-active' : ''} onClick={() => setDevice('cpu')}>CPU</button>
+              <button className={device === 'gpu' ? 'is-active' : ''} onClick={() => setDevice('gpu')} disabled={!capabilities.gpu}>GPU</button>
+            </div>
+          </div>
+          <p className="engine-hint">
+            {capabilities.cores} core rilevati · WebGPU {capabilities.gpu ? 'disponibile' : 'non disponibile'} · isolamento cross-origin {capabilities.isolated ? 'attivo (multi-thread WASM abilitato)' : 'non attivo (primo avvio: ricarica la pagina una volta)'}
+          </p>
+        </div>
+      </section>
       {!file && <label className="dropzone" onDragOver={(event) => { event.preventDefault(); event.currentTarget.classList.add('is-dragging'); }} onDragLeave={(event) => event.currentTarget.classList.remove('is-dragging')} onDrop={(event) => { event.preventDefault(); event.currentTarget.classList.remove('is-dragging'); processImage(event.dataTransfer.files[0]); }}>
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => processImage(event.target.files[0])} />
         <span className="upload-icon"><Upload size={23} /></span><strong>Trascina qui un’immagine</strong><span>oppure <u>scegli un file</u></span><small>PNG, JPG o WEBP · massimo 20 MB</small>
