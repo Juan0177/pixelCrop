@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Download, ImagePlus, Moon, RotateCcw, Sun, Upload, WandSparkles } from 'lucide-react';
+import { Download, ImagePlus, Moon, RotateCcw, SlidersHorizontal, Sun, Upload, WandSparkles } from 'lucide-react';
 import { segmentForeground } from '../assets/js/background-removal.js';
 import './styles.css';
 
@@ -17,6 +17,7 @@ function shapeAlpha(alpha, value) {
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('pixelcrop-theme') || 'dark');
+  const [showAdvanced, setShowAdvanced] = useState(() => localStorage.getItem('pixelcrop-advanced') === 'true');
   const [file, setFile] = useState(null);
   const [originalUrl, setOriginalUrl] = useState('');
   const [status, setStatus] = useState(null);
@@ -49,6 +50,10 @@ function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('pixelcrop-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('pixelcrop-advanced', String(showAdvanced));
+  }, [showAdvanced]);
 
   // Il nome della GPU si ottiene solo dopo aver richiesto un adattatore: WebGPU non lo espone in modo sincrono.
   useEffect(() => {
@@ -227,13 +232,17 @@ function App() {
     <main className="app-shell">
       <nav className="topbar">
         <a className="brand" href="./" aria-label="PixelCrop home"><span className="brand-mark"><i /><i /><i /><i /></span><span>pixel<span>crop</span></span></a>
-        <div className="topbar-actions"><span className="privacy-note"><span className="status-dot" /> elaborazione locale</span><button className="icon-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Cambia tema">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button></div>
+        <div className="topbar-actions">
+          <span className="privacy-note"><span className="status-dot" /> elaborazione locale</span>
+          <button className="icon-button" onClick={() => setShowAdvanced((previous) => !previous)} aria-label={showAdvanced ? 'Nascondi opzioni' : 'Mostra opzioni'} aria-pressed={showAdvanced} title={showAdvanced ? 'Nascondi opzioni' : 'Mostra opzioni'}><SlidersHorizontal size={17} /></button>
+          <button className="icon-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Cambia tema">{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
+        </div>
       </nav>
       <section className="intro">
         <p className="eyebrow">strumento 01 / scontorno</p>
         <h1>Via lo sfondo.<br /><em>Resta il soggetto.</em></h1>
         <p className="lede">Un editor privato per scontornare, rifinire e scaricare immagini direttamente dal browser.</p>
-        <div className="engine-panel">
+        {showAdvanced && <div className="engine-panel">
           <div className="engine-row">
             <span>Motore</span>
             <div className="engine-toggle">
@@ -248,7 +257,7 @@ function App() {
             CPU: {capabilities.cores} core logici · isolamento cross-origin {capabilities.isolated ? 'attivo (multi-thread abilitato)' : 'non attivo (ricarica la pagina una volta)'}<br />
             GPU: {capabilities.gpu ? (capabilities.gpuName || 'WebGPU disponibile, nome adattatore non esposto dal browser') : 'WebGPU non disponibile su questo browser/dispositivo'}
           </p>
-        </div>
+        </div>}
       </section>
       {!file && <label className="dropzone" onDragOver={(event) => { event.preventDefault(); event.currentTarget.classList.add('is-dragging'); }} onDragLeave={(event) => event.currentTarget.classList.remove('is-dragging')} onDrop={(event) => { event.preventDefault(); event.currentTarget.classList.remove('is-dragging'); processImage(event.dataTransfer.files[0]); }}>
         <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => processImage(event.target.files[0])} />
@@ -257,17 +266,23 @@ function App() {
       {status === 'processing' && <section className="progress-panel">
         <div className="progress-head"><span><WandSparkles size={15} /> Elaborazione locale</span><span>{Math.round(progress)}%</span></div>
         <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
-        <p>
-          {modelCached
-            ? `Modello già in cache in questa sessione: solo il calcolo sull'immagine viene rieseguito (motore ${device.toUpperCase()}).`
-            : `Primo utilizzo in questa sessione: scaricamento e preparazione del modello, poi calcolo (motore ${device.toUpperCase()}).`}
-        </p>
-        {liveStats && <div className="live-stats">
-          <div><span>Tempo trascorso</span><strong>{(liveStats.elapsedMs / 1000).toFixed(1)} s</strong></div>
-          <div><span>Memoria JS</span><strong>{liveStats.heapUsedMB != null ? `${liveStats.heapUsedMB.toFixed(0)} / ${liveStats.heapLimitMB.toFixed(0)} MB` : 'non esposta da questo browser'}</strong></div>
-          <div><span>Calcolo pianificato</span><strong>{device === 'gpu' ? 'WebGPU' : `${capabilities.isolated ? capabilities.cores : 1} thread WASM`}</strong></div>
-          <p className="live-stats-note">La cache evita solo il ri-download e la ri-creazione della sessione del modello: il calcolo della rete neurale sui pixel dell'immagine va sempre rieseguito, anche ripetendo la stessa immagine, quindi la durata resta simile da qui in poi. I browser inoltre non espongono l'uso reale di CPU/GPU in percentuale (mitigazioni contro attacchi Spectre): questi restano gli unici valori misurabili da una pagina web.</p>
-        </div>}
+        {showAdvanced ? (
+          <>
+            <p>
+              {modelCached
+                ? `Modello già in cache in questa sessione: solo il calcolo sull'immagine viene rieseguito (motore ${device.toUpperCase()}).`
+                : `Primo utilizzo in questa sessione: scaricamento e preparazione del modello, poi calcolo (motore ${device.toUpperCase()}).`}
+            </p>
+            {liveStats && <div className="live-stats">
+              <div><span>Tempo trascorso</span><strong>{(liveStats.elapsedMs / 1000).toFixed(1)} s</strong></div>
+              <div><span>Memoria JS</span><strong>{liveStats.heapUsedMB != null ? `${liveStats.heapUsedMB.toFixed(0)} / ${liveStats.heapLimitMB.toFixed(0)} MB` : 'non esposta da questo browser'}</strong></div>
+              <div><span>Calcolo pianificato</span><strong>{device === 'gpu' ? 'WebGPU' : `${capabilities.isolated ? capabilities.cores : 1} thread WASM`}</strong></div>
+              <p className="live-stats-note">La cache evita solo il ri-download e la ri-creazione della sessione del modello: il calcolo della rete neurale sui pixel dell'immagine va sempre rieseguito, anche ripetendo la stessa immagine, quindi la durata resta simile da qui in poi. I browser inoltre non espongono l'uso reale di CPU/GPU in percentuale (mitigazioni contro attacchi Spectre): questi restano gli unici valori misurabili da una pagina web.</p>
+            </div>}
+          </>
+        ) : (
+          liveStats && <p className="elapsed-only">Tempo impiegato: {(liveStats.elapsedMs / 1000).toFixed(1)} s</p>
+        )}
       </section>}
       {error && <div className="error" role="alert">{error}</div>}
       {status === 'ready' && <section className="editor-result"><div className="result-head"><div><p className="eyebrow">risultato pronto</p><h2>Prima / dopo</h2></div><button className="secondary-button" onClick={clear}>Nuova immagine</button></div>
