@@ -1,8 +1,21 @@
 {
   "type": "module",
-  "devDependencies": {
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/copy-assets.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
     "@imgly/background-removal": "^1.5.5",
-    "@imgly/background-removal-data": "^1.4.5",
-    "esbuild": "^0.28.2"
+    "lucide-react": "^1.44.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "vite": "^6.4.3"
   }
 }
