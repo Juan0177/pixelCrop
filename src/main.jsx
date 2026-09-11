@@ -4,7 +4,8 @@ import { Download, ImagePlus, Moon, RotateCcw, Sun, Upload, WandSparkles } from 
 import { segmentForeground } from '../assets/js/background-removal.js';
 import './styles.css';
 
-const modelsPublicPath = new URL('./assets/models/dist/', window.location.href).href;
+// I dati binari del modello vivono in public/models: Vite li serve as-is, senza passarli dal transform di import-analysis.
+const modelsPublicPath = new URL('./models/dist/', window.location.href).href;
 
 function shapeAlpha(alpha, value) {
   const t = value / 100;
