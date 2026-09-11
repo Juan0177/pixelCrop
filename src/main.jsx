@@ -27,9 +27,10 @@ function App() {
   const [brushSize, setBrushSize] = useState(40);
   const [downloadUrl, setDownloadUrl] = useState('');
   const [device, setDevice] = useState(() => (typeof navigator !== 'undefined' && 'gpu' in navigator ? 'gpu' : 'cpu'));
-  const [capabilities] = useState(() => ({
+  const [capabilities, setCapabilities] = useState(() => ({
     cores: typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 1 : 1,
     gpu: typeof navigator !== 'undefined' && 'gpu' in navigator,
+    gpuName: '',
     isolated: typeof window !== 'undefined' && window.crossOriginIsolated === true,
   }));
   const originalData = useRef(null);
@@ -43,6 +44,17 @@ function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('pixelcrop-theme', theme);
   }, [theme]);
+
+  // Il nome della GPU si ottiene solo dopo aver richiesto un adattatore: WebGPU non lo espone in modo sincrono.
+  useEffect(() => {
+    if (!capabilities.gpu) return;
+    navigator.gpu.requestAdapter().then(async (adapter) => {
+      if (!adapter) return;
+      const info = adapter.info ?? (await adapter.requestAdapterInfo?.().catch(() => null));
+      const name = [info?.vendor, info?.architecture, info?.description].filter(Boolean).join(' · ');
+      if (name) setCapabilities((previous) => ({ ...previous, gpuName: name }));
+    }).catch(() => {});
+  }, [capabilities.gpu]);
 
   useEffect(() => () => {
     if (originalUrl) URL.revokeObjectURL(originalUrl);
@@ -181,8 +193,12 @@ function App() {
               <button className={device === 'gpu' ? 'is-active' : ''} onClick={() => setDevice('gpu')} disabled={!capabilities.gpu}>GPU</button>
             </div>
           </div>
+          <p className="engine-explainer">
+            CPU esegue il modello su {capabilities.cores} core della tua macchina in parallelo (WASM multi-thread); GPU delega il calcolo alla scheda grafica tramite WebGPU, di solito più veloce sulle immagini grandi. Elaborazione sempre locale, nessun dato lascia il browser.
+          </p>
           <p className="engine-hint">
-            {capabilities.cores} core rilevati · WebGPU {capabilities.gpu ? 'disponibile' : 'non disponibile'} · isolamento cross-origin {capabilities.isolated ? 'attivo (multi-thread WASM abilitato)' : 'non attivo (primo avvio: ricarica la pagina una volta)'}
+            CPU: {capabilities.cores} core logici · isolamento cross-origin {capabilities.isolated ? 'attivo (multi-thread abilitato)' : 'non attivo (ricarica la pagina una volta)'}<br />
+            GPU: {capabilities.gpu ? (capabilities.gpuName || 'WebGPU disponibile, nome adattatore non esposto dal browser') : 'WebGPU non disponibile su questo browser/dispositivo'}
           </p>
         </div>
       </section>
