@@ -82,5 +82,3 @@ npm install
 ## Privacy
 
 L’immagine viene letta dal browser, trasformata localmente e convertita in un PNG trasparente. PixelCrop non include un server applicativo e non invia l’immagine a GitHub o a un servizio di elaborazione remoto.
-
-Prima di distribuire l’app in un contesto commerciale, verificare le licenze del modello, del runtime e delle relative dipendenze.
