@@ -16,15 +16,21 @@ PixelCrop usa un modello AI eseguito localmente tramite JavaScript, WebAssembly 
 
 ## Avvio locale
 
-È sufficiente servire la cartella con un server statico. Ad esempio, con Python:
+PixelCrop è un'app React costruita con Vite: non aprire `index.html` direttamente né servirlo con un server statico generico (es. Live Server), perché fa riferimento a `/src/main.jsx`, un sorgente che Vite trasforma solo tramite il proprio server di sviluppo.
 
 ```powershell
-python -m http.server 8000
+npm install
+npm run dev
 ```
 
-Aprire quindi [http://localhost:8000](http://localhost:8000).
+Aprire quindi l'indirizzo mostrato in console (tipicamente [http://localhost:5173](http://localhost:5173)).
 
-Non è consigliato aprire direttamente `index.html` con `file://`, perché il browser può bloccare il caricamento dei moduli e degli asset locali.
+Per verificare la build di produzione localmente:
+
+```powershell
+npm run build
+npm run preview
+```
 
 ## Pubblicazione su GitHub Pages
 
@@ -46,16 +52,18 @@ https://juan0177.github.io/pixelCrop/
 
 ```text
 assets/
-├── js/       bundle locale del motore di rimozione sfondo
+├── js/       bundle locale del motore di rimozione sfondo e coi-serviceworker.js
 ├── models/   modello ONNX e resources.json
-└── wasm/     runtime WebAssembly di ONNX Runtime
+└── icons/    favicon
 ```
 
-Il primo utilizzo può richiedere il download del modello. Dopo il caricamento iniziale, il browser può riutilizzare gli asset dalla cache. Il modello completo occupa circa 221 MB, quindi il repository e il primo caricamento sono più pesanti di una normale pagina statica.
+Lo script `scripts/copy-assets.mjs` copia `assets/` dentro `dist/assets` dopo ogni `npm run build`, così il bundle Vite e i file statici locali (modello, WASM, favicon) convivono nella stessa cartella pubblicata.
 
-## Rigenerazione degli asset
+Il primo utilizzo può richiedere il download del modello. Dopo il caricamento iniziale, il browser può riutilizzare gli asset dalla cache. Il modello completo occupa circa 175 MB, quindi il repository e il primo caricamento sono più pesanti di una normale pagina statica.
 
-Le dipendenze di build sono dichiarate in `package.json` e il lockfile in `package-lock.json` mantiene le versioni installate. Gli asset già presenti in `assets/` sono quelli utilizzati dal sito pubblicato.
+## Stack
+
+React, Vite, Tailwind CSS e Lucide per le icone. Le dipendenze sono dichiarate in `package.json` e il lockfile in `package-lock.json` mantiene le versioni installate.
 
 ```powershell
 npm install
